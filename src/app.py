@@ -11,6 +11,9 @@ from fastapi.responses import RedirectResponse
 import os
 from pathlib import Path
 
+from src.db import SessionLocal, init_db
+from src.models import Activity, Enrollment, User
+
 app = FastAPI(title="Mergington High School API",
               description="API for viewing and signing up for extracurricular activities")
 
@@ -76,6 +79,55 @@ activities = {
         "participants": ["charlotte@mergington.edu", "henry@mergington.edu"]
     }
 }
+
+
+def seed_initial_data() -> None:
+    db = SessionLocal()
+    try:
+        existing_activities = db.query(Activity).count()
+        if existing_activities > 0:
+            return
+
+        users_by_email = {}
+        for activity_name, activity in activities.items():
+            activity_model = Activity(
+                name=activity_name,
+                description=activity["description"],
+                schedule=activity["schedule"],
+                max_participants=activity["max_participants"],
+            )
+            db.add(activity_model)
+            db.flush()
+
+            for email in activity["participants"]:
+                user_model = users_by_email.get(email)
+                if user_model is None:
+                    user_model = db.query(User).filter(User.email == email).first()
+                    if user_model is None:
+                        user_model = User(email=email)
+                        db.add(user_model)
+                        db.flush()
+                    users_by_email[email] = user_model
+
+                db.add(
+                    Enrollment(
+                        user_id=user_model.id,
+                        activity_id=activity_model.id,
+                    )
+                )
+
+        db.commit()
+    except Exception:
+        db.rollback()
+        raise
+    finally:
+        db.close()
+
+
+@app.on_event("startup")
+def on_startup() -> None:
+    init_db()
+    seed_initial_data()
 
 
 @app.get("/")
