@@ -12,13 +12,19 @@ A super simple FastAPI application that allows students to view and sign up for 
 1. Install the dependencies:
 
    ```
-   pip install fastapi uvicorn
+   pip install -r ../requirements.txt
    ```
 
 2. Run the application:
 
    ```
-   python app.py
+   uvicorn src.app:app --reload
+   ```
+
+3. (Optional but recommended) run migrations before starting:
+
+   ```
+   alembic upgrade head
    ```
 
 3. Open your browser and go to:
@@ -47,4 +53,5 @@ The application uses a simple data model with meaningful identifiers:
    - Name
    - Grade level
 
-All data is stored in memory, which means data will be reset when the server restarts.
+The project now includes database models and migrations for persistence work.
+The current API behavior remains unchanged while persistence is being rolled out incrementally.
